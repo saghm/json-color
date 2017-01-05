@@ -7,7 +7,7 @@ keywords = ["json", "color", "colorize", "colored"]
 license = "MIT"
 name = "json-color"
 repository = "https://github.com/saghm/json-color.git"
-version = "0.1.0"
+version = "0.2.0"
 
 [dependencies]
 colored = "1.4.0"
