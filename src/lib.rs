@@ -5,6 +5,11 @@ use colored::Colorize;
 use serde_json::value::Value;
 pub use serde_json::error::Error;
 
+/// Colorize a string of JSON.
+/// 
+/// # Errors
+///
+/// An error is returned if the string is invalid JSON or an I/O error occurs.
 pub fn colorize_json_string(s: &str) -> Result<String, Error> {
     let value = ::serde_json::from_str(s)?;
     Ok(colorize_json_with_indentation(&value, 0))

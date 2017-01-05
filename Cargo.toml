@@ -1,6 +1,7 @@
 [package]
 authors = ["Saghm Rossi <saghmrossi@gmail.com>"]
 description = "Colorize JSON strings"
+documentation = "https://docs.rs/json-color"
 homepage = "https://github.com/saghm/json-color.git"
 keywords = ["json", "color", "colorize", "colored"]
 license = "MIT"
