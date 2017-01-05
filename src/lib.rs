@@ -10,7 +10,7 @@ pub use serde_json::error::Error;
 /// # Errors
 ///
 /// An error is returned if the string is invalid JSON or an I/O error occurs.
-pub fn colorize_json_string(s: &str) -> Result<String, Error> {
+pub fn colorize_json_str(s: &str) -> Result<String, Error> {
     let value = ::serde_json::from_str(s)?;
     Ok(colorize_json_with_indentation(&value, 0))
 }
