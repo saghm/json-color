@@ -9,3 +9,5 @@ repository = "https://github.com/saghm/json-color.git"
 version = "0.1.0"
 
 [dependencies]
+colored = "1.4.0"
+serde_json = "0.8.4"
