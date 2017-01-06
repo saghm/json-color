@@ -57,9 +57,8 @@ impl Default for Color {
     }
 }
 
-/// A struct representing a specific configuration of colors for the various JSON components. 
 #[derive(Default)]
-pub struct Colorizer {
+pub struct ColorizerBuilder {
     null: Color,
     boolean: Color,
     number: Color,
@@ -67,9 +66,8 @@ pub struct Colorizer {
     key: Color,
 }
 
-impl Colorizer {
-    /// Creates a new Colorizer with all components configured as Color::Plain.
-    pub fn new() -> Self {
+impl ColorizerBuilder {
+    fn new() -> Self {
         Default::default()
     }
 
@@ -79,7 +77,7 @@ impl Colorizer {
         self
     }
 
-    /// Sets the color of boolean values. 
+    /// Sets the color of boolean values.
     pub fn boolean(&mut self, color: Color) -> &mut Self {
         self.boolean = color;
         self
@@ -103,15 +101,47 @@ impl Colorizer {
         self
     }
 
+    /// Constructs a new Colorizer.
+    pub fn build(&self) -> Colorizer {
+        Colorizer {
+            null: self.null.clone(),
+            boolean: self.boolean.clone(),
+            number: self.number.clone(),
+            string: self.string.clone(),
+            key: self.key.clone(),
+        }
+    }
+}
+
+
+/// A struct representing a specific configuration of colors for the various JSON components.
+#[derive(Default)]
+pub struct Colorizer {
+    pub null: Color,
+    pub boolean: Color,
+    pub number: Color,
+    pub string: Color,
+    pub key: Color,
+}
+
+impl Colorizer {
+    /// Start builder a new Colorizer.
+    pub fn new() -> ColorizerBuilder {
+        ColorizerBuilder::new()
+    }
+
     /// Creates a new Colorizer with a predefined set of colors for the various JSON components.
     ///
     /// Use this if you want your JSON to be colored, but don't care about the specific colors.
     pub fn arbitrary() -> Self {
-        let mut colorizer = Colorizer::new();
-        colorizer.null(Color::Cyan).boolean(Color::Yellow).number(Color::Magenta).string(Color::Green).key(Color::Blue);
-
-        colorizer
-    } 
+        Colorizer::new()
+            .null(Color::Cyan)
+            .boolean(Color::Yellow)
+            .number(Color::Magenta)
+            .string(Color::Green)
+            .key(Color::Blue)
+            .build()
+    }
 
     /// Colorize a JSON string. Currently, all strings will be pretty-printed (with indentation and
     /// spacing).
