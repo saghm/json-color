@@ -2,21 +2,47 @@
 
 ## Usage
 
-Add `json-color` to your Cargo.toml as usual, and then import and call the `colorize_json_string` function:
+Add `json-color` to your Cargo.toml as usual.
+
+### Examples
+
+If you don't care about the specific colors used:
 
 ```rust
 extern crate json_color;
 
-use json_color::colorize_json_str
+use json_color::Colorizer;
 
-...
-
-if let Ok(colored_json) = colorize_json_str("{ \"foo\": [1, 2.0, false, null] }") {
-    println!("{}", colored_json);
+fn main() {
+    let colorizer = Colorizer::arbitrary();
+    
+    if let Some(json_str) = colorizer.colorize_json_str("{ \"foo\": [1, 2.0, false, null] }") {
+        println!("{}", json_str);
+    }
 }
 ```
 
-That's it!
+If you want to pick specific colors to use:
+
+```rust
+extern crate json_color;
+
+use json_color::{Colorizer, Color};
+
+fn main() {
+    let colorizer = Colorizer::new()
+            .null(Color::Cyan)
+            .boolean(Color::Yellow)
+            .number(Color::Magenta)
+            .string(Color::Green)
+            .key(Color::Blue)
+            .build();
+
+    if let Some(json_str) = colorizer.colorize_json_str("{ \"foo\": [1, 2.0, false, null] }") {
+        println!("{}", json_str);
+    }
+}
+```
 
 ## Documentation
 
