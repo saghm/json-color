@@ -34,6 +34,7 @@ fn colorize_str(s: &str, color: &Color) -> String {
     }
 }
 
+/// The set of available colors for the various JSON components.
 #[derive(Clone)]
 pub enum Color {
     Black,
@@ -46,7 +47,7 @@ pub enum Color {
     White,
     Yellow,
 
-    // Default color
+    /// Default color
     Plain,
 }
 
@@ -56,6 +57,7 @@ impl Default for Color {
     }
 }
 
+/// A struct representing a specific configuration of colors for the various JSON components. 
 #[derive(Default)]
 pub struct Colorizer {
     null: Color,
@@ -66,35 +68,44 @@ pub struct Colorizer {
 }
 
 impl Colorizer {
+    /// Creates a new Colorizer with all components configured as Color::Plain.
     pub fn new() -> Self {
         Default::default()
     }
 
+    /// Sets the color of the null value.
     pub fn null(&mut self, color: Color) -> &mut Self {
         self.null = color;
         self
     }
 
+    /// Sets the color of boolean values. 
     pub fn boolean(&mut self, color: Color) -> &mut Self {
         self.boolean = color;
         self
     }
 
+    /// Sets the color of number values.
     pub fn number(&mut self, color: Color) -> &mut Self {
         self.number = color;
         self
     }
 
+    /// Sets the color of string values.
     pub fn string(&mut self, color: Color) -> &mut Self {
         self.string = color;
         self
     }
 
+    /// Sets the color of JSON object keys.
     pub fn key(&mut self, color: Color) -> &mut Self {
         self.key = color;
         self
     }
 
+    /// Creates a new Colorizer with a predefined set of colors for the various JSON components.
+    ///
+    /// Use this if you want your JSON to be colored, but don't care about the specific colors.
     pub fn arbitrary() -> Self {
         let mut colorizer = Colorizer::new();
         colorizer.null(Color::Cyan).boolean(Color::Yellow).number(Color::Magenta).string(Color::Green).key(Color::Blue);
@@ -102,7 +113,8 @@ impl Colorizer {
         colorizer
     } 
 
-    /// Colorize a string of JSON.
+    /// Colorize a JSON string. Currently, all strings will be pretty-printed (with indentation and
+    /// spacing).
     ///
     /// # Errors
     ///
