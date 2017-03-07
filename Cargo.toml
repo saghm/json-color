@@ -11,4 +11,4 @@ version = "0.3.0"
 
 [dependencies]
 colored = "1.4.0"
-serde_json = "0.8.4"
+serde_json = "0.9.9"

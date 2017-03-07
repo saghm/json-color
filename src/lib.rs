@@ -159,9 +159,7 @@ impl Colorizer {
             Value::Null => colorize_str("null", &self.null),
             Value::Bool(true) => colorize_str("true", &self.boolean),
             Value::Bool(false) => colorize_str("false", &self.boolean),
-            Value::I64(i) => colorize!(i, &self.number),
-            Value::U64(u) => colorize!(u, &self.number),
-            Value::F64(f) => colorize!(f, &self.number), 
+            Value::Number(ref f) => colorize!(f, &self.number), 
             Value::String(ref s) => colorize_with_quotes!(s, &self.string),
             Value::Array(ref values) => {
                 let indentation: String = (0..indent_level * 2).map(|_| ' ').collect();
