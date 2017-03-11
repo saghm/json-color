@@ -1,37 +1,35 @@
 extern crate colored;
+extern crate serde;
 extern crate serde_json;
 
+pub use serde_json::{Error, Result};
+
 use colored::Colorize;
+use serde::ser::Serialize;
+use serde_json::ser::{CharEscape, Formatter, Serializer};
 use serde_json::value::Value;
-pub use serde_json::error::Error;
+
+use std::io::Write;
+use std::str;
 
 macro_rules! colorize {
-    ($val:expr, $color:expr) => {
-        colorize_str(&format!("{}", $val), $color)
-    }
-}
+    ($s:expr, $color:expr) => {{
+        let colored_string = match *$color {
+            Color::Black => $s.black(),
+            Color::Blue => $s.blue(),
+            Color::Cyan => $s.cyan(),
+            Color::Green => $s.green(),
+            Color::Magenta => $s.magenta(),
+            Color::Purple => $s.purple(),
+            Color::Red => $s.red(),
+            Color::White => $s.white(),
+            Color::Yellow => $s.yellow(),
 
-macro_rules! colorize_with_quotes {
-    ($val:expr, $color:expr) => {
-        colorize_str(&format!("\"{}\"", $val), $color)
-    }
-}
+            Color::Plain => $s.normal(),
+        };
 
-fn colorize_str(s: &str, color: &Color) -> String {
-    match *color {
-        Color::Black => s.black().to_string(),
-        Color::Blue => s.blue().to_string(),
-        Color::Cyan => s.cyan().to_string(),
-        Color::Green => s.green().to_string(),
-        Color::Magenta => s.magenta().to_string(),
-        Color::Purple => s.purple().to_string(),
-        Color::Red => s.red().to_string(),
-        Color::White => s.white().to_string(),
-        Color::Yellow => s.yellow().to_string(),
-
-        // Default color
-        Color::Plain => s.to_string(),
-    }
+        colored_string.to_string()
+    }}
 }
 
 /// The set of available colors for the various JSON components.
@@ -64,6 +62,7 @@ pub struct ColorizerBuilder {
     number: Color,
     string: Color,
     key: Color,
+    escape_sequence: Color,
 }
 
 impl ColorizerBuilder {
@@ -101,6 +100,12 @@ impl ColorizerBuilder {
         self
     }
 
+    /// Sets the color of escape sequences within string values.
+    pub fn escape_sequence(&mut self, color: Color) -> &mut Self {
+        self.escape_sequence = color;
+        self
+    }
+
     /// Constructs a new Colorizer.
     pub fn build(&self) -> Colorizer {
         Colorizer {
@@ -109,19 +114,25 @@ impl ColorizerBuilder {
             number: self.number.clone(),
             string: self.string.clone(),
             key: self.key.clone(),
+            escape_sequence: self.escape_sequence.clone(),
+            indent_level: 0,
+            current_is_key: false,
         }
     }
 }
 
 
 /// A struct representing a specific configuration of colors for the various JSON components.
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Colorizer {
     pub null: Color,
     pub boolean: Color,
     pub number: Color,
     pub string: Color,
     pub key: Color,
+    escape_sequence: Color,
+    indent_level: usize,
+    current_is_key: bool,
 }
 
 impl Colorizer {
@@ -140,6 +151,7 @@ impl Colorizer {
             .number(Color::Magenta)
             .string(Color::Green)
             .key(Color::Blue)
+            .escape_sequence(Color::Red)
             .build()
     }
 
@@ -149,70 +161,246 @@ impl Colorizer {
     /// # Errors
     ///
     /// An error is returned if the string is invalid JSON or an I/O error occurs.
-    pub fn colorize_json_str(&self, s: &str) -> Result<String, Error> {
-        let value = ::serde_json::from_str(s)?;
-        Ok(self.colorize_json_with_indentation(&value, 0))
+    pub fn colorize_json_str(&self, s: &str) -> Result<String> {
+        let value: Value = ::serde_json::from_str(s)?;
+        let vec = try!(self.to_vec(&value));
+        let string = unsafe { String::from_utf8_unchecked(vec) };
+        Ok(string)
     }
 
-    fn colorize_json_with_indentation(&self, value: &Value, indent_level: u8) -> String {
-        match *value {
-            Value::Null => colorize_str("null", &self.null),
-            Value::Bool(true) => colorize_str("true", &self.boolean),
-            Value::Bool(false) => colorize_str("false", &self.boolean),
-            Value::Number(ref f) => colorize!(f, &self.number), 
-            Value::String(ref s) => colorize_with_quotes!(s, &self.string),
-            Value::Array(ref values) => {
-                let indentation: String = (0..indent_level * 2).map(|_| ' ').collect();
-                let mut buf = String::new();
+    fn to_vec<T: ?Sized>(&self, value: &T) -> Result<Vec<u8>>
+        where T: Serialize
+    {
+        let mut writer = Vec::with_capacity(128);
 
-                buf.push('[');
 
-                for (i, val) in values.iter().enumerate() {
-                    if i != 0 {
-                        buf.push(',');
-                    }
+        try!(self.to_writer(&mut writer, value));
+        Ok(writer)
+    }
 
-                    buf.push('\n');
-                    buf.push_str(&indentation);
-                    buf.push_str("  ");
-                    buf.push_str(&self.colorize_json_with_indentation(val, indent_level + 1));
-                }
+    fn to_writer<W: ?Sized, T: ?Sized>(&self, writer: &mut W, value: &T) -> Result<()>
+        where W: Write,
+              T: Serialize
+    {
+        let mut ser = Serializer::with_formatter(writer, self.clone());
+        try!(value.serialize(&mut ser));
+        Ok(())
+    }
 
-                if !values.is_empty() {
-                    buf.push('\n');
-                    buf.push_str(&indentation);
-                }
+    #[inline]
+    fn get_indentation(&self) -> String {
+        (0..self.indent_level * 2).map(|_| ' ').collect()
+    }
 
-                buf.push(']');
-                buf
-            }
-            Value::Object(ref obj) => {
-                let indentation: String = (0..indent_level * 2).map(|_| ' ').collect();
-                let mut buf = String::new();
-
-                buf.push('{');
-
-                for (i, (key, val)) in obj.iter().enumerate() {
-                    if i != 0 {
-                        buf.push(',');
-                    }
-
-                    buf.push('\n');
-                    buf.push_str(&indentation);
-                    buf.push_str("  ");
-                    buf.push_str(&colorize_with_quotes!(key, &self.key));
-                    buf.push_str(": ");
-                    buf.push_str(&self.colorize_json_with_indentation(val, indent_level + 1));
-                }
-
-                if !obj.is_empty() {
-                    buf.push('\n');
-                    buf.push_str(&indentation);
-                }
-
-                buf.push('}');
-                buf
-            }
+    #[inline]
+    fn get_string_color(&self) -> &Color {
+        if self.current_is_key {
+            &self.key
+        } else {
+            &self.string
         }
     }
 }
+
+impl Formatter for Colorizer {
+    fn write_null<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
+        where W: Write
+    {
+        write!(writer, "{}", colorize!("null", &self.null)).map_err(Error::from)
+    }
+
+    fn write_bool<W: ?Sized>(&mut self, writer: &mut W, value: bool) -> Result<()>
+        where W: Write
+    {
+        let value_as_string = format!("{}", value);
+        write!(writer, "{}", colorize!(&value_as_string, &self.boolean)).map_err(Error::from)
+    }
+
+    fn write_i8<W: ?Sized>(&mut self, writer: &mut W, value: i8) -> Result<()>
+        where W: Write
+    {
+        let value_as_string = format!("{}", value);
+        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+    }
+
+    fn write_i16<W: ?Sized>(&mut self, writer: &mut W, value: i16) -> Result<()>
+        where W: Write
+    {
+        let value_as_string = format!("{}", value);
+        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+    }
+
+    fn write_i32<W: ?Sized>(&mut self, writer: &mut W, value: i32) -> Result<()>
+        where W: Write
+    {
+        let value_as_string = format!("{}", value);
+        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+    }
+
+    fn write_i64<W: ?Sized>(&mut self, writer: &mut W, value: i64) -> Result<()>
+        where W: Write
+    {
+        let value_as_string = format!("{}", value);
+        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+    }
+
+    fn write_u8<W: ?Sized>(&mut self, writer: &mut W, value: u8) -> Result<()>
+        where W: Write
+    {
+        let value_as_string = format!("{}", value);
+        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+    }
+
+    fn write_u16<W: ?Sized>(&mut self, writer: &mut W, value: u16) -> Result<()>
+        where W: Write
+    {
+        let value_as_string = format!("{}", value);
+        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+    }
+
+    fn write_u32<W: ?Sized>(&mut self, writer: &mut W, value: u32) -> Result<()>
+        where W: Write
+    {
+        let value_as_string = format!("{}", value);
+        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+    }
+
+    fn write_u64<W: ?Sized>(&mut self, writer: &mut W, value: u64) -> Result<()>
+        where W: Write
+    {
+        let value_as_string = format!("{}", value);
+        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+    }
+
+    fn write_f32<W: ?Sized>(&mut self, writer: &mut W, value: f32) -> Result<()>
+        where W: Write
+    {
+        let value_as_string = format!("{}", value);
+        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+    }
+
+    fn write_f64<W: ?Sized>(&mut self, writer: &mut W, value: f64) -> Result<()>
+        where W: Write
+    {
+        let value_as_string = format!("{}", value);
+        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+    }
+
+    fn begin_string<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
+        where W: Write
+    {
+        write!(writer, "{}", colorize!("\"", self.get_string_color())).map_err(Error::from)
+    }
+
+    fn end_string<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
+        where W: Write
+    {
+        write!(writer, "{}", colorize!("\"", self.get_string_color())).map_err(Error::from)
+    }
+
+    fn write_string_fragment<W: ?Sized>(&mut self, writer: &mut W, fragment: &[u8]) -> Result<()>
+        where W: Write
+    {
+        let value_as_string = unsafe { str::from_utf8_unchecked(fragment) };
+
+        write!(writer,
+               "{}",
+               colorize!(value_as_string, self.get_string_color()))
+                .map_err(Error::from)
+    }
+
+    fn write_char_escape<W: ?Sized>(&mut self,
+                                    writer: &mut W,
+                                    char_escape: CharEscape)
+                                    -> Result<()>
+        where W: Write
+    {
+        let s = match char_escape {
+            CharEscape::Quote => "\\\"",
+            CharEscape::ReverseSolidus => "\\\\",
+            CharEscape::Solidus => "\\/",
+            CharEscape::Backspace => "\\b",
+            CharEscape::FormFeed => "\\f",
+            CharEscape::LineFeed => "\\n",
+            CharEscape::CarriageReturn => "\\r",
+            CharEscape::Tab => "\\t",
+            CharEscape::AsciiControl(byte) => {
+                let hex_digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c',
+                                  'd', 'e', 'f'];
+
+                let mut bytes = "\\u00".to_string();
+                bytes.push(hex_digits[(byte >> 4) as usize]);
+                bytes.push(hex_digits[(byte & 0xF) as usize]);
+
+                return write!(writer, "{}", colorize!(bytes, &self.escape_sequence))
+                           .map_err(Error::from);
+            }
+        };
+
+        write!(writer, "{}", colorize!(s, &self.escape_sequence)).map_err(Error::from)
+    }
+
+    fn begin_array<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
+        where W: Write
+    {
+        self.indent_level += 1;
+        write!(writer, "[").map_err(Error::from)
+    }
+
+    fn end_array<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
+        where W: Write
+    {
+        self.indent_level -= 1;
+        write!(writer, "\n{}]", self.get_indentation()).map_err(Error::from)
+    }
+
+    fn begin_array_value<W: ?Sized>(&mut self, writer: &mut W, first: bool) -> Result<()>
+        where W: Write
+    {
+        if !first {
+            write!(writer, ",")?;
+        }
+
+        write!(writer, "\n{}", self.get_indentation()).map_err(Error::from)
+    }
+
+    fn begin_object_key<W: ?Sized>(&mut self, writer: &mut W, first: bool) -> Result<()>
+        where W: Write
+    {
+        if !first {
+            write!(writer, ",")?;
+        }
+
+        self.current_is_key = true;
+
+        write!(writer, "\n{}", self.get_indentation()).map_err(Error::from)
+    }
+
+    fn end_object_key<W: ?Sized>(&mut self, _writer: &mut W) -> Result<()>
+        where W: Write
+    {
+        self.current_is_key = false;
+        Ok(())
+    }
+
+    fn begin_object_value<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
+        where W: Write
+    {
+        write!(writer, ": ").map_err(Error::from)
+    }
+
+    fn begin_object<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
+        where W: Write
+    {
+        self.indent_level += 1;
+        write!(writer, "{{").map_err(Error::from)
+    }
+
+    fn end_object<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
+        where W: Write
+    {
+        self.indent_level -= 1;
+        write!(writer, "\n{}}}", self.get_indentation()).map_err(Error::from)
+    }
+}
+

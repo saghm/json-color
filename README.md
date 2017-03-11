@@ -15,8 +15,8 @@ use json_color::Colorizer;
 
 fn main() {
     let colorizer = Colorizer::arbitrary();
-    
-    if let Some(json_str) = colorizer.colorize_json_str("{ \"foo\": [1, 2.0, false, null] }") {
+
+    if let Ok(json_str) = colorizer.colorize_json_str("{ \"foo\": [1, 2.0, false, null] }") {
         println!("{}", json_str);
     }
 }
@@ -38,7 +38,7 @@ fn main() {
             .key(Color::Blue)
             .build();
 
-    if let Some(json_str) = colorizer.colorize_json_str("{ \"foo\": [1, 2.0, false, null] }") {
+    if let Ok(json_str) = colorizer.colorize_json_str("{ \"foo\": [1, 2.0, false, null] }") {
         println!("{}", json_str);
     }
 }
