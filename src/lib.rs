@@ -2,14 +2,12 @@ extern crate colored;
 extern crate serde;
 extern crate serde_json;
 
-pub use serde_json::{Error, Result};
-
 use colored::Colorize;
 use serde::ser::Serialize;
 use serde_json::ser::{CharEscape, Formatter, Serializer};
 use serde_json::value::Value;
 
-use std::io::Write;
+use std::io::{Result, Write};
 use std::str;
 
 macro_rules! colorize {
@@ -206,107 +204,103 @@ impl Formatter for Colorizer {
     fn write_null<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
         where W: Write
     {
-        write!(writer, "{}", colorize!("null", &self.null)).map_err(Error::from)
+        write!(writer, "{}", colorize!("null", &self.null))
     }
 
     fn write_bool<W: ?Sized>(&mut self, writer: &mut W, value: bool) -> Result<()>
         where W: Write
     {
         let value_as_string = format!("{}", value);
-        write!(writer, "{}", colorize!(&value_as_string, &self.boolean)).map_err(Error::from)
+        write!(writer, "{}", colorize!(&value_as_string, &self.boolean))
     }
 
     fn write_i8<W: ?Sized>(&mut self, writer: &mut W, value: i8) -> Result<()>
         where W: Write
     {
         let value_as_string = format!("{}", value);
-        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+        write!(writer, "{}", colorize!(&value_as_string, &self.number))
     }
 
     fn write_i16<W: ?Sized>(&mut self, writer: &mut W, value: i16) -> Result<()>
         where W: Write
     {
         let value_as_string = format!("{}", value);
-        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+        write!(writer, "{}", colorize!(&value_as_string, &self.number))
     }
 
     fn write_i32<W: ?Sized>(&mut self, writer: &mut W, value: i32) -> Result<()>
         where W: Write
     {
         let value_as_string = format!("{}", value);
-        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+        write!(writer, "{}", colorize!(&value_as_string, &self.number))
     }
 
     fn write_i64<W: ?Sized>(&mut self, writer: &mut W, value: i64) -> Result<()>
         where W: Write
     {
         let value_as_string = format!("{}", value);
-        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+        write!(writer, "{}", colorize!(&value_as_string, &self.number))
     }
 
     fn write_u8<W: ?Sized>(&mut self, writer: &mut W, value: u8) -> Result<()>
         where W: Write
     {
         let value_as_string = format!("{}", value);
-        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+        write!(writer, "{}", colorize!(&value_as_string, &self.number))
     }
 
     fn write_u16<W: ?Sized>(&mut self, writer: &mut W, value: u16) -> Result<()>
         where W: Write
     {
         let value_as_string = format!("{}", value);
-        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+        write!(writer, "{}", colorize!(&value_as_string, &self.number))
     }
 
     fn write_u32<W: ?Sized>(&mut self, writer: &mut W, value: u32) -> Result<()>
         where W: Write
     {
         let value_as_string = format!("{}", value);
-        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+        write!(writer, "{}", colorize!(&value_as_string, &self.number))
     }
 
     fn write_u64<W: ?Sized>(&mut self, writer: &mut W, value: u64) -> Result<()>
         where W: Write
     {
         let value_as_string = format!("{}", value);
-        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+        write!(writer, "{}", colorize!(&value_as_string, &self.number))
     }
 
     fn write_f32<W: ?Sized>(&mut self, writer: &mut W, value: f32) -> Result<()>
         where W: Write
     {
         let value_as_string = format!("{}", value);
-        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+        write!(writer, "{}", colorize!(&value_as_string, &self.number))
     }
 
     fn write_f64<W: ?Sized>(&mut self, writer: &mut W, value: f64) -> Result<()>
         where W: Write
     {
         let value_as_string = format!("{}", value);
-        write!(writer, "{}", colorize!(&value_as_string, &self.number)).map_err(Error::from)
+        write!(writer, "{}", colorize!(&value_as_string, &self.number))
     }
 
     fn begin_string<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
         where W: Write
     {
-        write!(writer, "{}", colorize!("\"", self.get_string_color())).map_err(Error::from)
+        write!(writer, "{}", colorize!("\"", self.get_string_color()))
     }
 
     fn end_string<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
         where W: Write
     {
-        write!(writer, "{}", colorize!("\"", self.get_string_color())).map_err(Error::from)
+        write!(writer, "{}", colorize!("\"", self.get_string_color()))
     }
 
-    fn write_string_fragment<W: ?Sized>(&mut self, writer: &mut W, fragment: &[u8]) -> Result<()>
+    fn write_string_fragment<W: ?Sized>(&mut self, writer: &mut W, fragment: &str) -> Result<()>
         where W: Write
     {
-        let value_as_string = unsafe { str::from_utf8_unchecked(fragment) };
+        write!(writer, "{}", colorize!(fragment, self.get_string_color()))
 
-        write!(writer,
-               "{}",
-               colorize!(value_as_string, self.get_string_color()))
-                .map_err(Error::from)
     }
 
     fn write_char_escape<W: ?Sized>(&mut self,
@@ -332,26 +326,25 @@ impl Formatter for Colorizer {
                 bytes.push(hex_digits[(byte >> 4) as usize]);
                 bytes.push(hex_digits[(byte & 0xF) as usize]);
 
-                return write!(writer, "{}", colorize!(bytes, &self.escape_sequence))
-                           .map_err(Error::from);
+                return write!(writer, "{}", colorize!(bytes, &self.escape_sequence));
             }
         };
 
-        write!(writer, "{}", colorize!(s, &self.escape_sequence)).map_err(Error::from)
+        write!(writer, "{}", colorize!(s, &self.escape_sequence))
     }
 
     fn begin_array<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
         where W: Write
     {
         self.indent_level += 1;
-        write!(writer, "[").map_err(Error::from)
+        write!(writer, "[")
     }
 
     fn end_array<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
         where W: Write
     {
         self.indent_level -= 1;
-        write!(writer, "\n{}]", self.get_indentation()).map_err(Error::from)
+        write!(writer, "\n{}]", self.get_indentation())
     }
 
     fn begin_array_value<W: ?Sized>(&mut self, writer: &mut W, first: bool) -> Result<()>
@@ -361,7 +354,7 @@ impl Formatter for Colorizer {
             write!(writer, ",")?;
         }
 
-        write!(writer, "\n{}", self.get_indentation()).map_err(Error::from)
+        write!(writer, "\n{}", self.get_indentation())
     }
 
     fn begin_object_key<W: ?Sized>(&mut self, writer: &mut W, first: bool) -> Result<()>
@@ -373,7 +366,7 @@ impl Formatter for Colorizer {
 
         self.current_is_key = true;
 
-        write!(writer, "\n{}", self.get_indentation()).map_err(Error::from)
+        write!(writer, "\n{}", self.get_indentation())
     }
 
     fn end_object_key<W: ?Sized>(&mut self, _writer: &mut W) -> Result<()>
@@ -386,21 +379,20 @@ impl Formatter for Colorizer {
     fn begin_object_value<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
         where W: Write
     {
-        write!(writer, ": ").map_err(Error::from)
+        write!(writer, ": ")
     }
 
     fn begin_object<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
         where W: Write
     {
         self.indent_level += 1;
-        write!(writer, "{{").map_err(Error::from)
+        write!(writer, "{{")
     }
 
     fn end_object<W: ?Sized>(&mut self, writer: &mut W) -> Result<()>
         where W: Write
     {
         self.indent_level -= 1;
-        write!(writer, "\n{}}}", self.get_indentation()).map_err(Error::from)
+        write!(writer, "\n{}}}", self.get_indentation())
     }
 }
-
