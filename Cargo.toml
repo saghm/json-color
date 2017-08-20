@@ -6,6 +6,7 @@ homepage = "https://github.com/saghm/json-color.git"
 keywords = ["json", "color", "colorize", "colored"]
 license = "MIT"
 name = "json-color"
+readme = "README.md"
 repository = "https://github.com/saghm/json-color.git"
 version = "0.6.0"
 
