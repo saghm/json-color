@@ -166,6 +166,20 @@ impl Colorizer {
         Ok(string)
     }
 
+    /// Colorize a JSON string and write the result to `writer`.
+    ///
+    /// Currently, all strings will be pretty-printed (with indentation and spacing).
+    ///
+    /// # Errors
+    ///
+    /// An error is returned if the string is invalid JSON or an I/O error occur.s
+    pub fn colorize_to_writer<W>(&self, s: &str, writer: &mut W) -> Result<()>
+        where W: Write,
+    {
+        let value: Value = ::serde_json::from_str(s)?;
+        self.to_writer(writer, &value)
+    }
+
     fn to_vec<T: ?Sized>(&self, value: &T) -> Result<Vec<u8>>
         where T: Serialize
     {
