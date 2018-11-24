@@ -172,7 +172,7 @@ impl Colorizer {
     ///
     /// # Errors
     ///
-    /// An error is returned if the string is invalid JSON or an I/O error occur.s
+    /// An error is returned if the string is invalid JSON or an I/O error occurs.
     pub fn colorize_to_writer<W>(&self, s: &str, writer: &mut W) -> Result<()>
         where W: Write,
     {
