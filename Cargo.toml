@@ -12,6 +12,6 @@ repository = "https://github.com/saghm/json-color.git"
 version = "0.7.0"
 
 [dependencies]
-colored = "1.6.0"
-serde = "1.0.27"
-serde_json = { version = "1.0.9", features = ["preserve_order"] }
+colored = "1.7.0"
+serde = "1.0.87"
+serde_json = { version = "1.0.38", features = ["preserve_order"] }
